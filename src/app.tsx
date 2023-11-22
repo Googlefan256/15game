@@ -6,7 +6,7 @@ function isPossible(grid: (number | null)[]) {
         can = false;
     for (let i = 0; i < 16; i++) {
         let num = grid.indexOf(i + 1);
-        if (num === i + 1) continue;
+        if (num === i) continue;
         grid[num] = grid[i];
         grid[i] = i + 1;
         can = !can;
@@ -33,30 +33,58 @@ function randomizedDefault() {
 export function App() {
     const [grid, setGrid] = useState(randomizedDefault());
     const [startTime, setStartTime] = useState(Date.now());
+    const [isStarted, setIsStarted] = useState(false);
+    const [currentTimer, setCurrentTimer] = useState(0);
     useEffect(() => {
         const isComplete = grid.every((v, i) => {
             if (v === null) return i === 15;
             return v === i + 1;
         });
         if (isComplete) {
-            alert(
-                `You won! It took you ${Math.floor(
-                    (Date.now() - startTime) / 1000,
-                )} seconds!`,
-            );
+            let seconds = (Date.now() - startTime) / 1000;
+            let minutes = Math.floor(seconds / 60);
+            seconds = seconds % 60;
+            alert(`You won! Your clear time is ${minutes}:${seconds}!`);
             setGrid(randomizedDefault());
-            setStartTime(Date.now());
+            setIsStarted(false);
         }
     }, [grid]);
+    useEffect(() => {
+        if (!isStarted) return;
+        const interval = setInterval(() => {
+            setCurrentTimer((Date.now() - startTime) / 1000);
+        }, 20);
+        return () => clearInterval(interval);
+    }, [isStarted]);
     return (
         <>
             <div className="flex flex-col items-center justify-center min-h-screen py-2">
-                <div class="grid grid-rows-4 grid-cols-4 gap-4">
+                <div class="flex flex-col justify-center items-center mb-4">
+                    <button
+                        onClick={() => {
+                            setGrid(randomizedDefault());
+                            setIsStarted(false);
+                        }}
+                        class="text-2xl bg-gray-500 text-white p-2 rounded-md shadow-md w-[20vw] md:w-[10vw] mb-2"
+                    >
+                        Reset
+                    </button>
+                    {isStarted ? (
+                        <p class="text-2xl p-0">Time: {currentTimer}</p>
+                    ) : (
+                        <p class="text-2xl p-0">Time: 0</p>
+                    )}
+                </div>
+                <div class="grid grid-rows-4 grid-cols-4 gap-2 md:gap-4">
                     {grid.map((k, i) => (
                         <Card
                             key={i}
                             visible={k !== null}
                             onClick={() => {
+                                if (!isStarted) {
+                                    setStartTime(Date.now());
+                                    setIsStarted(true);
+                                }
                                 const index = grid.findIndex((v) => v === k);
                                 const nullIndex = grid.findIndex(
                                     (v) => v === null,
@@ -91,14 +119,16 @@ function Card({
     return (
         <>
             <div
-                class={`w-[150px] h-[150px] mx-auto ${
+                class={`w-[90px] h-[90px] md:w-[150px] md:h-[150px] mx-auto ${
                     visible
                         ? "rounded-md shadow-md overflow-hidden bg-gray-500"
                         : "bg-white"
                 } flex justify-center items-center`}
                 onClick={onClick}
             >
-                {visible && <p class="text-6xl text-white">{children}</p>}
+                {visible && (
+                    <p class="text-3xl md:text-6xl text-white">{children}</p>
+                )}
             </div>
         </>
     );
